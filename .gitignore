@@ -1,0 +1,17 @@
+out/
+*.o
+*.elf
+*.img
+*.zzc
+*.gz
+kernel_a64.img
+catin.img
+boot_r5.img
+ramdisk.gz
+user/apps/*/bin/app
+Catin System/OS/*.img
+Catin1.zip
+.vscode/
+.idea/
+.DS_Store
+*.swp

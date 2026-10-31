@@ -1,0 +1,212 @@
+欢迎来到 Catin OS 的生态世界！.zzc 是 Catin OS 专属的应用程序包格式。它采用了极简的底层设计，让你可以用纯 C 语言直接与系统内核交互，榨干硬件性能。
+
+第一章：认识 .zzc 格式（本质与安全）
+
+1.1 什么是 .zzc？
+
+.zzc 的底层本质上是一个标准的 ZIP 压缩包（目前仅支持 Stored 不压缩模式）。它包含了应用的清单文件、可执行文件和图片资源。
+
+1.2 防伪机制
+
+为了防止恶意软件伪装，Catin OS 内核在安装时会进行“安检”。app.conf 的第一行必须包含校验魔术字：
+Catin OS
+
+如果没有这行字，内核的 zzc.c 模块会直接拒绝安装。
+
+---
+
+第二章：工程目录结构
+
+一个标准的 Catin OS 应用目录结构如下：
+
+```text
+my_app/
+├── app.conf          # 应用清单文件（必需）
+├── bin/
+│   └── app           # 编译后的 ARM64 ELF 可执行文件（必需）
+└── assets/
+    └── icon.png      # 桌面图标，建议 120x120 像素（可选）
+```
+
+---
+
+第三章：配置文件 app.conf 详解
+
+app.conf 是应用的“身份证”。系统通过它来获取应用信息。支持 // 和 # 进行注释。
+
+示例：
+
+```text
+Catin OS
+# 这是基础信息
+name=系统设置
+logo=assets/icon.png
+Activity=bin/app
+orientation=portrait
+author=Catin
+vs=1.0.0
+zzc.sign=Settings2026
+```
+
+字段说明：
+
+· 第一行：必须是 Catin OS（防伪）。
+· name：应用在桌面上显示的中文或英文名称。
+· logo：图标的相对路径。如果找不到，桌面会显示一个?兜底。
+· Activity：极其重要！必须指向编译好的可执行文件（通常是 bin/app），绝对不要写成 main.c。
+· vs：版本号。
+· zzc.sign：开发者签名标识（目前用于校验区分，后续可扩展为真实的加密验签）。
+
+---
+
+第四章：从零编写第一个 App
+
+Catin OS 的应用是纯 C 语言编写的裸机程序（不依赖标准 libc）。
+
+4.1 基础骨架
+
+所有应用必须包含 catin.h，并使用 CATIN_APP 宏。
+
+```c
+#include "catin.h"
+
+// 页面进入前调用（初始化变量、读取文件）
+static void home_enter(void) {
+    // 初始化操作
+}
+
+// 页面渲染与事件处理（系统主循环每帧调用）
+static void home_update(catin_canvas_t *cv, catin_event_t *e) {
+    cv->clear(cv, C_BG); // 清屏
+    
+    // 渲染 UI
+    cv->text(cv, 40, 80, "Hello Catin OS!", C_WHITE);
+    
+    // 把画面推送到显存
+    cv->present(cv);
+}
+
+// 程序入口宏
+CATIN_APP("MyApp") {
+    catin_screen_t s = { .name="home", .enter=home_enter, .update=home_update };
+    catin_screen_register("home", s);
+    catin_screen_goto(0);
+    
+    catin_canvas_t *cv = catin_canvas_get();
+    for(;;) {
+        catin_event_t e = {0};
+        catin_platform_poll(&e);
+        if(e.type == CEV_QUIT) break; // 退出应用
+        catin_screen_dispatch(cv, &e); // 分发事件
+    }
+    return 0;
+}
+```
+
+---
+
+第五章：UI 与交互（XCUI 框架）
+
+Catin OS 原生支持 XCUI 渲染引擎。
+
+5.1 画布操作
+
+· cv->clear(cv, C_BG)：填充背景色。
+· cv->pixel(cv, x, y, color)：画一个像素点。
+· cv->rect_fill(cv, x, y, w, h, color)：画实心矩形。
+· cv->text(cv, x, y, "string", color)：渲染文本。
+
+5.2 控件使用
+
+系统内置了按钮、输入框、滑块等控件。
+
+```c
+static catin_button_t btn_click;
+
+// 在 enter 中初始化
+btn_click = (catin_button_t){ .r=RECT(100, 200, 200, 60), .text="点我", .bg=C_BLUE, .fg=C_WHITE };
+
+// 在 update 中渲染并处理事件
+catin_button_draw(cv, &btn_click);
+catin_button_event(&btn_click, e);
+
+if (btn_click.clicked) {
+    btn_click.clicked = 0; // 必须重置状态
+    // 执行点击逻辑
+}
+```
+
+---
+
+第六章：系统级 API 与权限（极客专属）
+
+Catin OS 提供了直接的文件和系统操作 API。
+
+6.1 文件与目录
+
+```c
+// 读取文件
+char *buf = catin_malloc(1024);
+u32 size = 0;
+catin_fs_readfile("/Catin System/System/boot_status.cfg", buf, 1024);
+
+// 遍历目录
+catin_dirent_t ents[32];
+int n = catin_fs_list("/Catin System", ents, 32);
+
+// 删除文件
+catin_fs_rm("/Catin System/System/boot_status.cfg");
+```
+
+6.2 ⚠️ 权限与 BL 锁
+
+· 开发者模式：开启后，你可以修改部分 UI 和配置参数。
+· Bootloader (BL) 锁：这是系统的最高权限。
+  · 默认状态下，内核的 security.c 会拦截所有对 /Catin System/OS/ 核心镜像的修改和删除。
+  · 只有通过设置里的隐藏手势（长按+滑动）真正解开了 BL 锁，系统才允许应用越权执行危险操作。请谨慎开发此类功能，否则会导致系统变砖！
+
+---
+
+第七章：编译与打包
+
+7.1 交叉编译
+
+应用必须使用 ARM64 交叉编译器进行编译，并指定入口和链接地址（0x200000）。
+
+```bash
+aarch64-linux-gnu-gcc -ffreestanding -nostdlib -nostdinc -fno-builtin -fno-stack-protector -fno-pic -fno-pie -Wall -O2 -Iuser/include -c main.c -o app.o
+aarch64-linux-gnu-ld -static -no-pie -Ttext=0x200000 --entry=_start -o bin/app app.o
+```
+
+7.2 打包 .zzc
+
+记住，内核的 ZIP 模块目前只支持 stored 模式，不能压缩！
+
+```bash
+# -0 代表不压缩，-r 代表递归
+zip -0 -r my_app.zzc app.conf bin assets/
+```
+
+---
+
+第八章：安装与发布
+
+1. 将 .zzc 文件放入系统内置应用目录：/Catin System/rootfs/apps/。
+2. 打开 Catin OS 的“浏览器”，输入：
+   http://local/my_app.zzc
+3. 点击 “下载并安装”。
+4. 退回桌面，系统会自动读取注册表并渲染出你的新图标。
+
+---
+
+附录：避坑指南 (FAQ)
+
+1. 点开应用直接黑屏/重启？
+   · 检查你的 .c 文件里有没有调用 catin_malloc 申请了超出系统堆大小的内存。
+   · 检查有没有发生死循环。
+   · 确保 Activity=bin/app 指向正确。
+2. 桌面上显示 ? 图标？
+   · 检查 app.conf 里的 logo 路径是否正确。
+   · 确保 assets 目录里真的有你指定的 icon.png。
+3. 控制台打印 Exec: Not a valid ELF!？
+   · 说明内核的 ELF 加载器读到了不是二进制码的东西。检查你是不是把源码 .c 传进去当可执行文件了。
