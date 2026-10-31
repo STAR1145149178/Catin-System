@@ -23,7 +23,8 @@ QQ: 3757835685
 
 ## 📖 Introduction
 
-**Catin OS** is not just a toy project; it is a fully functional, bare-metal operating system ecosystem. What makes this project truly unique is the background of its creator: **a 13-year-old developer who wrote the entire kernel, drivers, UI framework, and application ecosystem purely on a mobile phone using Termux, without access to a traditional PC.**
+**Catin OS** is not just a toy project; it is a fully functional, bare-metal operating system ecosystem. What makes this project truly unique is the background of its creator: **was born in 2014
+a 13-year-old developer who wrote the entire kernel, drivers, UI framework, and application ecosystem purely on a mobile phone using Termux, without access to a traditional PC.**
 
 From paging and scheduling to multimedia decoding and a custom application format (`.zzc`), Catin OS pushes the absolute limits of mobile-based development.
 
@@ -84,7 +85,7 @@ Catin OS (Catin1) - 中文说明
 
 📖 项目简介
 
-Catin OS 绝不是一个简单的玩具项目，而是一个五脏俱全的裸机操作系统生态。这个项目最独特的地方在于它的开发背景：作者是一名13岁的初中生，在没有电脑的情况下，完全使用手机在 Termux 终端中，纯手写了内核、驱动、UI框架以及应用生态。
+Catin OS 绝不是一个简单的玩具项目，而是一个五脏俱全的裸机操作系统生态。这个项目最独特的地方在于它的开发背景：作者是一名2014出生制作时13岁的初中生，在没有电脑的情况下，完全使用手机在 Termux 终端中，纯手写了内核、驱动、UI框架以及应用生态。
 
 从内存分页、进程调度，到多媒体解码、自定义应用格式（.zzc），Catin OS 挑战了移动端开发的极限。
 
