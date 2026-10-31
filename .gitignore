@@ -15,3 +15,8 @@ Catin1.zip
 .idea/
 .DS_Store
 *.swp
+
+# 忽略应用和系统镜像产物
+Catin System/rootfs/apps/
+Catin System/OS/
+user/apps/*.zzc
